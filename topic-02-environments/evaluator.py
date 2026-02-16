@@ -1,6 +1,5 @@
 import parser, tokenizer
 
-
 def evaluate(ast, environment):
     if ast["tag"] == "number":
         return ast["value"]
@@ -28,6 +27,8 @@ def evaluate(ast, environment):
         return evaluate(ast["left"], environment) * evaluate(ast["right"], environment)
     elif ast["tag"] == "/":
         return evaluate(ast["left"], environment) / evaluate(ast["right"], environment)
+    elif ast["tag"] == "%":
+        return evaluate(ast["left"], environment) % evaluate(ast["right"], environment)
     else:
         raise ValueError(f"Unknown AST node: {ast}")
 
@@ -54,8 +55,21 @@ def test_evaluate():
     assert evaluate(ast, {}) == 35
     tokens = tokenizer.tokenize("3*(4+5)")
     ast, tokens = parser.parse_expression(tokens)
-    assert evaluate(ast, {}) == 27
-
+    assert evaluate(ast,{}) == 27
+    ast = {
+        "left": {
+            "left": {
+                "left": {"tag": "number", "value": 3},
+                "right": {"tag": "number", "value": 2},
+                "tag": "%",
+            },
+            "right": {"tag": "number", "value": 2},
+            "tag": "/",
+        },
+        "right": {"tag": "number", "value": 6},
+        "tag": "*",
+    }
+    assert evaluate(ast,{}) == 3
 
 def test_evaluate_environments():
     print("test evaluate() with environments")

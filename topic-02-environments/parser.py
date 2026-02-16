@@ -59,9 +59,9 @@ def test_parse_factor():
 
 
 def parse_term(tokens):
-    """term = factor { ("*" | "/") factor }"""
+    """term = factor { ("*" | "/" | "%") factor }"""
     left, tokens = parse_factor(tokens)
-    while tokens[0]["tag"] in ["*", "/"]:
+    while tokens[0]["tag"] in ["*", "/", "%"]:
         op = tokens[0]["tag"]
         right, tokens = parse_factor(tokens[1:])
         left = {"tag": op, "left": left, "right": right}
@@ -69,7 +69,7 @@ def parse_term(tokens):
 
 
 def test_parse_term():
-    """term = factor { ("*" | "/") factor }"""
+    """term = factor { ("*" | "/" | "%") factor }"""
     print("test parse_term()")
     tokens = tokenize("3")
     ast, tokens = parse_term(tokens)
@@ -103,6 +103,31 @@ def test_parse_term():
         "tag": "*",
     }
     assert tokens == [{"column": 6, "line": 1, "tag": None}]
+    tokens = tokenize("3%2")
+    ast, tokens = parse_term(tokens)
+    assert ast == {
+        "left": {"tag": "number", "value": 3},
+        "right": {"tag": "number", "value": 2},
+        "tag": "%",
+    }
+    assert tokens == [{"column": 4, "line": 1, "tag": None}]
+    tokens = tokenize("3%2/2*6")
+    ast, tokens = parse_term(tokens)
+    assert ast == {
+        "left": {
+            "left": {
+                "left": {"tag": "number", "value": 3},
+                "right": {"tag": "number", "value": 2},
+                "tag": "%",
+            },
+            "right": {"tag": "number", "value": 2},
+            "tag": "/",
+        },
+        "right": {"tag": "number", "value": 6},
+        "tag": "*",
+    }
+    assert tokens == [{"column": 8, "line": 1, "tag": None}]
+
 
 
 def parse_expression(tokens):

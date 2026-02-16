@@ -33,9 +33,12 @@ def test_parse_factor():
     assert tokens == [{"tag": None, "line": 1, "column": 2}]
     tokens = tokenize("(3+4)")
     ast, tokens = parse_factor(tokens)
-    assert ast == {'tag': '+', 'left': {'tag': 'number', 'value': 3}, 'right': {'tag': 'number', 'value': 4}} 
-    assert tokens == [{'tag': None, 'line': 1, 'column': 6}]
-
+    assert ast == {
+        "tag": "+",
+        "left": {"tag": "number", "value": 3},
+        "right": {"tag": "number", "value": 4},
+    }
+    assert tokens == [{"tag": None, "line": 1, "column": 6}]
 
 
 def parse_term(tokens):
