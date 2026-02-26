@@ -28,6 +28,8 @@ def evaluate(ast, environment):
         return evaluate(ast["left"], environment) * evaluate(ast["right"], environment)
     elif ast["tag"] == "/":
         return evaluate(ast["left"], environment) / evaluate(ast["right"], environment)
+    elif ast["tag"] == "%":
+        return evaluate(ast["left"]) % evaluate(ast["right"])
     else:
         raise ValueError(f"Unknown AST node: {ast}")
 
