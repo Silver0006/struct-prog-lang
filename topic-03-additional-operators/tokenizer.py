@@ -1,6 +1,13 @@
 import re
 from pprint import pprint
 
+# p = re.compile("ab*")
+
+# if p.match("abbbbbbb") :
+#     print("match")
+# else:
+#     print("not match")
+
 patterns = [
     (r"\s+", "whitespace"),
     (r"\d+", "number"),
@@ -12,6 +19,7 @@ patterns = [
     (r"\-", "-"),
     (r"\/", "/"),
     (r"\*", "*"),
+    (r"\%", "%"),
     (r"\(", "("),
     (r"\)", ")"),
     (r"\{", "{"),
@@ -88,9 +96,9 @@ def test_digits():
 
 def test_operators():
     print("test tokenize operators")
-    t = tokenize("+ - * / ( ) < > = ;")
-    tags = [tok["tag"] for tok in t]
-    assert tags == ["+", "-", "*", "/", "(", ")", "<", ">", "=", ";", None]
+    t = tokenize("+ - * / % ( ) < > = ;")
+    tags = [token["tag"] for token in t]
+    assert tags == ["+", "-", "*", "/", "%", "(", ")", "<", ">", "=", ";", None]
 
 
 def test_keywords():
