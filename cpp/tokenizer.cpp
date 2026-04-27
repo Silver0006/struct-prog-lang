@@ -6,12 +6,13 @@
 #include "tokenizer.hpp"
 
 static const std::unordered_map<std::string, std::string> patterns = {
-    
+    {}, 
 };
 
 // Global Variables
 int tokenStart = 1, charCount = 1, lineCount = 1;
 std::string tokens, token;
+const std::string section = "Tokenizer";
 
 // Helper functions
 std::string genToken(const std::string tag, const bool valueExists=false) {
@@ -52,10 +53,13 @@ void strTokenize(const std::string &source_code, std::string::iterator &pos) {
 void keywordTokenize(const std::string &source_code, std::string::iterator &pos) {
     token.clear();
     tokenStart = charCount;
-    while(!isspace(*pos) and pos != source_code.cend()) {
-       token += *pos;
-       ++pos;
-       ++charCount;
+    switch (*pos) {
+        default:
+            while(!isspace(*pos) and pos != source_code.cend()) {
+               token += *pos;
+               ++pos;
+               ++charCount;
+            }
     }
     token = genToken(token);
 }
@@ -105,9 +109,28 @@ std::string tokenize(std::string source_code) {
                 token = genToken("number", true);
                 break;
             }
+            // Single character tokens
+            case '+': case '-': case '*': case '/': case '%': case '(': case ')':
+            case '{': case '}': case '[': case ']': case ',': case ':': case ';':
+                token.clear();
+                tokenStart= charCount;
+                token += *pos;
+                ++pos;
+                ++charCount;
+                token = genToken(token);
+                break;
+            // Multi character tokens
+            case '!': case '=': case '|': case '&': case '<': case '>':
+                token.clear();
+                tokenStart= charCount;
+                token += *pos;
+                ++pos;
+                ++charCount;
+                token = genToken(token);
+                break;
             default:
                 #ifdef DEBUG
-                    std::cerr << "\nAbout to call keywordTokenize()" << std::endl;
+                    std::cerr << "About to call keywordTokenize()" << std::endl;
                 #endif
                 keywordTokenize(source_code, pos);
         }
@@ -120,7 +143,7 @@ std::string tokenize(std::string source_code) {
         #endif
     }
     tokens += "{'tag': 'None', 'line': " + std::to_string(lineCount)
-            + ", 'column: " + std::to_string(charCount) + "}]";
+            + ", 'column': " + std::to_string(charCount) + "}]";
     return tokens;
 }
 
