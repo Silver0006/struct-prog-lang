@@ -1,15 +1,23 @@
 #include <cctype>
 #include <iostream>
 #include <string>
-#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include "helper.hpp" // Generalized helper functions
 #include "tokenizer.hpp"
 
+#ifdef NANOBIND
+    #include <nanobind/nanobind.h>
+    #include <nanobind/stl/string.h>
+#endif
+
 // Global Variables
 const std::string section = "Tokenizer";
-static const std::unordered_map<std::string, std::string> patterns = {
-    {}, 
+static const std::unordered_set<std::string> patterns = {
+    "true", "false", "null", "function", "return", "extern",
+    "if", "else", "while", "for", "break", "continue",
+    "print", "import", "exit", "and", "or", "not",
+    "assert",
 };
 
 struct token {
@@ -45,21 +53,44 @@ class tokenizer {
         currentToken.value += '\'';
         ++pos;
         if (stringEmpty) {currentToken.value.clear();}
-        currentToken.tag = "identifier";
+        currentToken.tag = "string";
     }
 
     void keywordTokenize(const std::string &source_code, std::string::iterator &pos) {
         currentToken.tokenStart = charCount;
-        switch (*pos) {
-            default:
-                while(!isspace(*pos) and pos != source_code.cend()) {
-                   currentToken.tag += *pos;
-                   ++pos;
-                   ++charCount;
-                }
+        while(!isspace(*pos) and pos != source_code.cend()) {
+            switch (*pos) {
+                // Catch any non-valid characters
+                case '"': case '+': case '-': case '*': case '/': case '%': 
+                case '(': case ')': case '{': case '}': case '[': case ']': 
+                case ',': case ':': case ';': case '!': case '=': case '|':
+                case '&': case '<': case '>':
+                    break;       
+                default:
+                    currentToken.value += *pos;
+                    ++pos;
+                    ++charCount;
+                    continue;
+            }
+            break;
+        }
+        // Check for keywords
+        if (patterns.count(currentToken.value)) {
+            if (currentToken.value == "true") {
+                currentToken.tag = "boolean";
+                currentToken.value = "True";
+            } else if (currentToken.value == "false"){
+                currentToken.tag = "boolean";
+                currentToken.value = "False";
+            } else {
+                currentToken.tag = currentToken.value;
+                currentToken.value.clear();
+            }
+        } else {
+            currentToken.tag = "identifier";
         }
     }
-
+    
     int charCount = 1, lineCount = 1;
     std::vector<token> tokens;
     token currentToken;
@@ -79,12 +110,14 @@ public:
                 case ' ': case '\t': case '\r':
                     ++charCount;
                     ++pos;
+                    continue;
                     break;
                 // new line             
                 case '\n':
                     charCount = 1;
                     ++lineCount;
                     ++pos;
+                    continue;
                     break;
                 // strings
                 case '"':
@@ -163,3 +196,8 @@ std::string tokenize(std::string source_code) {
     return t.tokenize(source_code); 
 }
 
+#ifdef NANOBIND
+NB_MODULE(trivialCPP, m){
+    m.def("tokenize", &tokenize);
+}
+#endif

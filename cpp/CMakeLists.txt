@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 3.23)
 
-project("Trivial Parser C++")
+project("Trivial C++ Implementation")
 
-# Python 3.9 or newer. Nanobind requires this declared before it's called
+# Python 3.9 or newer. 
+# Nanobind requires this declared before it's called
 find_package(Python COMPONENTS Interpreter Development REQUIRED)
 
 include(FetchContent)
@@ -15,8 +16,11 @@ FetchContent_Declare(nanobind
 )
 FetchContent_MakeAvailable(nanobind)
 
-nanobind_add_module(parserCPP parser.cpp)
+add_library(trivialHelper STATIC helper.cpp)
+target_compile_options(trivialHelper PRIVATE -O3 -flto=auto)
 
-target_compile_options(parserCPP PRIVATE
-    -O3 -flto=auto
-)
+nanobind_add_module(trivialCPP tokenizer.cpp)
+
+target_link_libraries(trivialCPP PRIVATE trivialHelper)
+
+target_compile_options(trivialCPP PRIVATE -O3 -flto=auto -DNANOBIND)
