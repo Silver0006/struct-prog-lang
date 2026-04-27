@@ -29,31 +29,31 @@ struct token {
 class tokenizer {
     void strTokenize(const std::string &source_code, std::string::iterator &pos) {
         bool stringEmpty = true;
-        currentToken->tokenStart = charCount;
+        currentToken.tokenStart = charCount;
         ++charCount;
         ++pos;
-        currentToken->value += '\'';
+        currentToken.value += '\'';
         while (*pos != '"') {
             if (pos == source_code.cend()) {
                 trivialError("Tokenizer", "missing \"", lineCount, charCount);
             }
             stringEmpty = false;
             ++charCount;
-            currentToken->value += *pos;     
+            currentToken.value += *pos;     
             ++pos;
         }
-        currentToken->value += '\'';
+        currentToken.value += '\'';
         ++pos;
-        if (stringEmpty) {currentToken->value.clear();}
-        currentToken->tag = "identifier";
+        if (stringEmpty) {currentToken.value.clear();}
+        currentToken.tag = "identifier";
     }
 
     void keywordTokenize(const std::string &source_code, std::string::iterator &pos) {
-        currentToken->tokenStart = charCount;
+        currentToken.tokenStart = charCount;
         switch (*pos) {
             default:
                 while(!isspace(*pos) and pos != source_code.cend()) {
-                   currentToken->tag += *pos;
+                   currentToken.tag += *pos;
                    ++pos;
                    ++charCount;
                 }
@@ -61,8 +61,8 @@ class tokenizer {
     }
 
     int charCount = 1, lineCount = 1;
-    std::vector<token*> tokens;
-    token *currentToken = new token;
+    std::vector<token> tokens;
+    token currentToken;
 
 public:
     // Main tokenizer function
@@ -93,7 +93,7 @@ public:
                 // numbers
                 case '0': case '1': case '2': case '3': case '4': 
                 case '5': case '6': case '7': case '8': case '9': {
-                    currentToken->tokenStart = charCount;
+                    currentToken.tokenStart = charCount;
                     bool decimalCheck = false;
                     while (std::isdigit(*pos) or *pos == '.') {
                         if (*pos == '.' and decimalCheck) {
@@ -102,28 +102,28 @@ public:
                         } else if (*pos == '.') {
                             decimalCheck = true;
                         }
-                        currentToken->value += *pos;
+                        currentToken.value += *pos;
                         ++pos;
                         ++charCount;
                     }
-                    currentToken->tag = "number";
-                    currentToken->charCount = charCount;
+                    currentToken.tag = "number";
+                    currentToken.charCount = charCount;
                     break;
                 }
                 // Single character tokens
                 case '+': case '-': case '*': case '/': case '%': case '(': case ')':
                 case '{': case '}': case '[': case ']': case ',': case ':': case ';':
-                    currentToken->tokenStart = charCount;
-                    currentToken->tag += *pos;
+                    currentToken.tokenStart = charCount;
+                    currentToken.tag += *pos;
                     ++pos;
-                    currentToken->charCount = ++charCount;
+                    currentToken.charCount = ++charCount;
                     break;
                 // Multi character tokens
                 case '!': case '=': case '|': case '&': case '<': case '>':
-                    currentToken->tokenStart = charCount;
-                    currentToken->tag += *pos;
+                    currentToken.tokenStart = charCount;
+                    currentToken.tag += *pos;
                     ++pos;
-                    currentToken->charCount = ++charCount;
+                    currentToken.charCount = ++charCount;
                     break;            
                 default:
                     #ifdef DEBUG
@@ -132,26 +132,24 @@ public:
                     keywordTokenize(source_code, pos);
             }
             tokens.push_back(currentToken);
-            currentToken = new token;
+            currentToken = token{};
             #ifdef DEBUG
                 std::cerr << "[Debug][Tokenizer] end char: " << *pos
                           << " line: "  << lineCount 
                           << std::endl;
             #endif
         }
-        currentToken->tag = "None";
-        currentToken->lineCount = lineCount;
-        currentToken->tokenStart = charCount;
+        currentToken.tag = "None";
+        currentToken.lineCount = lineCount;
+        currentToken.tokenStart = charCount;
         tokens.push_back(currentToken);
-        currentToken = nullptr;
         
         // Take tokens and throw them into a string
         std::string tokenList = "[";
         for (size_t i = 0; i < tokens.size(); ++i){
             i == tokens.size()-1 ?
-                tokenList += tokens[i]->generate() :
-                tokenList += tokens[i]->generate() + ", ";
-            delete(tokens[i]);
+                tokenList += tokens[i].generate() :
+                tokenList += tokens[i].generate() + ", ";
         }
         tokenList += "]";
 
