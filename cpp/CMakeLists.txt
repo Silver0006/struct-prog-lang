@@ -19,8 +19,9 @@ FetchContent_MakeAvailable(nanobind)
 add_library(trivialHelper STATIC helper.cpp)
 target_compile_options(trivialHelper PRIVATE -O3 -flto=auto)
 
-nanobind_add_module(trivialCPP tokenizer.cpp)
+nanobind_add_module(trivialCPP tokenizer/tokenizer.cpp)
 
 target_link_libraries(trivialCPP PRIVATE trivialHelper)
 
 target_compile_options(trivialCPP PRIVATE -O3 -flto=auto -DNANOBIND)
+target_include_directories(trivialCPP PRIVATE ${CMAKE_SOURCE_DIR})

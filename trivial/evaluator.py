@@ -1,4 +1,4 @@
-from tokenizer import tokenize
+from trivialCPP import tokenize
 from parser import parse
 from pprint import pprint
 import copy
@@ -675,7 +675,7 @@ def evaluate(ast, environment):
         try:
             with open(filename_val, "r") as f:
                 source_code = f.read()
-            imported_tokens = tokenize(source_code)
+            imported_tokens = eval(tokenize(source_code))
             imported_ast = parse(imported_tokens)
             # Evaluate in the current environment.
             return evaluate(
@@ -703,7 +703,7 @@ def clean(e):
 
 
 def equals(code, environment, expected_result, expected_environment=None):
-    result, status = evaluate(parse(tokenize(code)), environment)
+    result, status = evaluate(parse(eval(tokenize(code)), environment))
 
     assert clean(result) == clean(expected_result), f"""ERROR: When executing
     {[code]} 
@@ -816,11 +816,11 @@ def test_evaluate_list_literal():
     print("test evaluate_list_literal")
     environment = {}
     code = "[1,2,3]"
-    ast = parse(tokenize(code))
+    ast = parse(eval(tokenize(code)))
     result, _ = evaluate(ast, environment)
     assert result == [1, 2, 3]
     code = "[]"
-    ast = parse(tokenize(code))
+    ast = parse(eval(tokenize(code)))
     result, _ = evaluate(ast, environment)
     assert result == []
 
@@ -829,11 +829,11 @@ def test_evaluate_object_literal():
     print("test evaluate_object_literal")
     environment = {}
     code = '{"a":1,"b":2}'
-    ast = parse(tokenize(code))
+    ast = parse(eval(tokenize(code)))
     result, _ = evaluate(ast, environment)
     assert result == {"a": 1, "b": 2}
     code = "{}"
-    ast = parse(tokenize(code))
+    ast = parse(eval(tokenize(code)))
     result, _ = evaluate(ast, environment)
     assert result == {}
 
@@ -841,7 +841,7 @@ def test_evaluate_object_literal():
 def test_evaluate_function_literal():
     print("test evaluate_function_literal")
     code = "f=function(x) {1}"
-    ast = parse(tokenize(code))
+    ast = parse(eval(tokenize(code)))
     equals(
         code,
         {},
@@ -865,7 +865,7 @@ def test_evaluate_function_literal():
         },
     )
     code = "function f(x) {1}"
-    ast = parse(tokenize(code))
+    ast = parse(eval(tokenize(code)))
     equals(
         code,
         {},
@@ -894,7 +894,7 @@ def test_evaluate_function_call():
     print("test evaluate_function_call")
     environment = {}
     code = "function f() {return(1234)}"
-    result, _ = evaluate(parse(tokenize(code)), environment)
+    result, _ = evaluate(parse(eval(tokenize(code)), environment))
     assert clean(environment) == {
         "f": {
             "tag": "function",
@@ -907,7 +907,7 @@ def test_evaluate_function_call():
             },
         }
     }
-    ast = parse(tokenize("f()"))
+    ast = parse(eval(tokenize("f()")))
     assert ast == {
         "statements": [
             {
@@ -927,7 +927,7 @@ def test_evaluate_function_call():
             {return 2};
         g(4)
         """
-    ast = parse(tokenize(code))
+    ast = parse(eval(tokenize(code)))
     result, _ = evaluate(ast, environment)
     assert result == 2
     code = """
@@ -936,7 +936,7 @@ def test_evaluate_function_call():
             {return [1,2,3,q]};
         g(4)
         """
-    ast = parse(tokenize(code))
+    ast = parse(eval(tokenize(code)))
     result, _ = evaluate(ast, environment)
     assert result == [1, 2, 3, 4]
 
@@ -948,13 +948,13 @@ def test_evaluate_return_statement():
         function f() { return };
         f()
     """
-    result, _ = evaluate(parse(tokenize(code)), environment)
+    result, _ = evaluate(parse(eval(tokenize(code)), environment))
     assert result == None
     code = """
         function f() { return 2+2 };
         f()
     """
-    result, _ = evaluate(parse(tokenize(code)), environment)
+    result, _ = evaluate(parse(eval(tokenize(code)), environment))
     assert result == 4
     code = """
         function f(x) { 
@@ -965,7 +965,7 @@ def test_evaluate_return_statement():
         };
         f(7) + f(0)
     """
-    result, _ = evaluate(parse(tokenize(code)), environment)
+    result, _ = evaluate(parse(eval(tokenize(code)), environment))
     assert result == 127
 
 
@@ -973,48 +973,48 @@ def test_evaluate_complex_expression():
     print("test evaluate_complex_expression")
     environment = {"x": [2, 4, 6, 8]}
     code = "x[3]"
-    ast = parse(tokenize(code))
+    ast = parse(eval(tokenize(code)))
     result, _ = evaluate(ast, environment)
     assert result == 8
 
     environment = {"x": {"a": 3, "b": 4}}
     code = 'x["b"]'
-    ast = parse(tokenize(code))
+    ast = parse(eval(tokenize(code)))
     result, _ = evaluate(ast, environment)
     assert result == 4
 
     environment = {"x": {"a": [1, 2, 3], "b": 4}}
     code = 'x["a"]'
-    ast = parse(tokenize(code))
+    ast = parse(eval(tokenize(code)))
     result, _ = evaluate(ast, environment)
     assert result == [1, 2, 3]
 
     code = 'x["a"][2]'
-    ast = parse(tokenize(code))
+    ast = parse(eval(tokenize(code)))
     result, _ = evaluate(ast, environment)
     assert result == 3
 
     code = "x.a[2]"
-    ast = parse(tokenize(code))
+    ast = parse(eval(tokenize(code)))
     result, _ = evaluate(ast, environment)
     assert result == 3
     code = "x.b = 7;"
-    ast = parse(tokenize(code))
+    ast = parse(eval(tokenize(code)))
     result, _ = evaluate(ast, environment)
     code = "x.b;"
-    ast = parse(tokenize(code))
+    ast = parse(eval(tokenize(code)))
     result, _ = evaluate(ast, environment)
     assert result == 7
 
     environment = {"x": [[1, 2], [3, 4]]}
     code = "x[0][1]"
-    ast = parse(tokenize(code))
+    ast = parse(eval(tokenize(code)))
     result, _ = evaluate(ast, environment)
     assert result == 2
 
     environment = {"x": {"a": {"x": 4, "y": 6}, "b": {"x": 5, "y": 7}}}
     code = 'x["b"]["y"]'
-    ast = parse(tokenize(code))
+    ast = parse(eval(tokenize(code)))
     result, _ = evaluate(ast, environment)
     assert result == 7
 
@@ -1023,13 +1023,13 @@ def test_evaluate_complex_assignment():
     print("test evaluate_complex_assignment")
     environment = {"x": [1, 2, 3]}
     code = "x[1]=4"
-    ast = parse(tokenize(code))
+    ast = parse(eval(tokenize(code)))
     result, _ = evaluate(ast, environment)
     assert environment["x"][1] == 4
 
     environment = {"x": {"a": 1, "b": 2}}
     code = 'x["b"]=4'
-    ast = parse(tokenize(code))
+    ast = parse(eval(tokenize(code)))
     result, _ = evaluate(ast, environment)
     assert environment["x"]["b"] == 4
 
@@ -1118,7 +1118,7 @@ def test_scoping():
         f()
     """
     # We don't care about the function's environment here, so we drop it
-    result, _ = evaluate(parse(tokenize(code)), env)
+    result, _ = evaluate(parse(eval(tokenize(code)), env))
     assert env["x"] == 1, "Local assignment should not affect parent scope"
 
     # External assignment does affect parent
@@ -1130,7 +1130,7 @@ def test_scoping():
         };
         f()
     """
-    result, _ = evaluate(parse(tokenize(code)), env)
+    result, _ = evaluate(parse(eval(tokenize(code)), env))
     assert env["x"] == 2, "Extern assignment should affect parent scope"
 
     code = """
@@ -1148,7 +1148,7 @@ def test_scoping():
         result = bar();
     """
     env = {}
-    evaluate(parse(tokenize(code)), env)
+    evaluate(parse(eval(tokenize(code)), env))
 
     # foo should see outer x = 1, not the x = 2 inside bar
     assert env["result"] == 1, f"Expected result = 1, got {env['result']}"
@@ -1169,7 +1169,7 @@ def test_closures():
         c2 = makeCounter();
     """
     env = {}
-    result, _ = evaluate(parse(tokenize(code)), env)
+    result, _ = evaluate(parse(eval(tokenize(code)), env))
 
     # Now call c1() and c2() within the same env
     equals("c1()", env, 1)
@@ -1183,34 +1183,34 @@ def test_control_flow_scoping_rules():
 
     # Invalid return (caught by 'program' node)
     try:
-        evaluate(parse(tokenize("return 1;")), {})
+        evaluate(parse(eval(tokenize("return 1;")), {}))
         assert False, "Top-level return should fail"
     except Exception as e:
         assert "'return' statement outside of function" in str(e)
 
     # Invalid break (caught by 'program' node)
     try:
-        evaluate(parse(tokenize("break;")), {})
+        evaluate(parse(eval(tokenize("break;")), {}))
         assert False, "Top-level break should fail"
     except Exception as e:
         assert "'break' statement outside of loop" in str(e)
 
     # Invalid continue (caught by 'program' node)
     try:
-        evaluate(parse(tokenize("continue;")), {})
+        evaluate(parse(eval(tokenize("continue;")), {}))
         assert False, "Top-level continue should fail"
     except Exception as e:
         assert "'continue' statement outside of loop" in str(e)
 
     # Valid exit
-    val, status = evaluate(parse(tokenize("exit 12;")), {})
+    val, status = evaluate(parse(eval(tokenize("exit 12;")), {}))
     assert val == 12 and status == "exit"
-    val, status = evaluate(parse(tokenize("exit;")), {})  # Default exit code 0
+    val, status = evaluate(parse(eval(tokenize("exit;")), {}))  # Default exit code 0
     assert val == 0 and status == "exit"
 
     # Return from within if, but not function (caught by 'program')
     try:
-        evaluate(parse(tokenize("if(true){ return 1; }")), {})
+        evaluate(parse(eval(tokenize("if(true){ return 1; }")), {}))
         assert False, "Return inside if (not function) should fail at program level"
     except Exception as e:
         assert "'return' statement outside of function" in str(e)
@@ -1218,7 +1218,7 @@ def test_control_flow_scoping_rules():
     # Break from within function, but not loop (caught by 'program')
     code = "function f() { break; }; f();"
     try:
-        evaluate(parse(tokenize(code)), {})
+        evaluate(parse(eval(tokenize(code)), {}))
         assert False, "Break inside function (not loop) should fail at program level"
     except Exception as e:
         assert "'break' statement outside of loop" in str(e)

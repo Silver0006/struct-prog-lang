@@ -2,7 +2,7 @@
 
 import sys
 
-from tokenizer import tokenize
+from trivialCPP import tokenize
 
 from parser import parse
 
@@ -17,7 +17,7 @@ def main():
         with open(sys.argv[1], 'r') as f:
             source_code = f.read()
         try:
-            tokens = tokenize(source_code)
+            tokens = eval(tokenize(source_code))
             ast = parse(tokens)
             final_value, exit_status = evaluate(ast, environment)
             if exit_status == "exit":
@@ -38,7 +38,7 @@ def main():
                     break
 
                 # Tokenize, parse, and execute the code
-                tokens = tokenize(source_code)
+                tokens = eval(tokenize(source_code))
                 ast = parse(tokens)
                 final_value, exit_status = evaluate(ast, environment)
                 if exit_status == "exit":

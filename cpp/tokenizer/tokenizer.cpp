@@ -49,6 +49,12 @@ class tokenizer {
             ++charCount;
             currentToken.value += *pos;     
             ++pos;
+            // Consume double quotes
+            if (pos != source_code.cend() and (*pos == '\"' and (pos+1) != source_code.cend() and *(pos + 1) == '\"')){
+                currentToken.value += *pos;
+                pos += 2;
+                charCount += 2;
+            }
         }
         currentToken.value += '\'';
         ++pos;
@@ -82,18 +88,105 @@ class tokenizer {
             } else if (currentToken.value == "false"){
                 currentToken.tag = "boolean";
                 currentToken.value = "False";
+            } else if (currentToken.value == "or") {
+                currentToken.tag = "||";
+                currentToken.value.clear();
+            } else if (currentToken.value == "and") {
+                currentToken.tag = "&&";
+                currentToken.value.clear();
+            } else if (currentToken.value == "not") {
+                currentToken.tag = "!";
+                currentToken.value.clear();
             } else {
                 currentToken.tag = currentToken.value;
                 currentToken.value.clear();
             }
         } else {
+            currentToken.value = "'" + currentToken.value + "'";
             currentToken.tag = "identifier";
         }
+    }
+
+    void multCharTokenize(const std::string &source_code, std::string::iterator &pos) {
+        char parentChar = *pos;
+        currentToken.tokenStart = charCount;
+        currentToken.tag += *pos;
+        ++pos;
+        currentToken.charCount = ++charCount;
+        if (pos == source_code.cend()) {return;}
+        switch (*pos) {
+            case '=': 
+                if (parentChar == '=' or parentChar == '!'
+                    or parentChar == '<' or parentChar == '>') {
+                    currentToken.tag += *pos;
+                    ++pos;
+                    currentToken.charCount = ++charCount;
+                }
+                break;
+            case '|': 
+                if (parentChar == '|') {
+                    currentToken.tag += *pos;
+                    ++pos;
+                    currentToken.charCount = ++charCount;
+                }
+                break;
+            case '&': 
+                if (parentChar == '&') {
+                    currentToken.tag += *pos;
+                    ++pos;
+                    currentToken.charCount = ++charCount;
+                }
+                break;
+            // Comment or Divide
+            case '/':
+                if (parentChar == '/') {
+                    currentToken.tag.clear();
+                    currentToken.tag = "comment";
+                    while (pos != source_code.cend() and *pos != '\n'){
+                        // Escape on newline. Should account for C++ input
+                        if (*pos == '\\' 
+                            and (pos+1) != source_code.cend() 
+                            and *(pos+1) == 'n') {
+                            ++lineCount;
+                            pos += 2;
+                            charCount = 1;
+                            break;
+                        }
+                        ++pos;
+                        ++charCount;
+                    }
+                    emergencySkip = true;
+                }
+                break;
+            default:
+                if (parentChar == '&' or parentChar == '|') {
+                    trivialError(section, (std::string("expected another ") + parentChar), lineCount, charCount);
+                }
+        }
+    }
+
+    void numTokenize(std::string &source_code, std::string::iterator &pos){
+        currentToken.tokenStart = charCount;
+        bool decimalCheck = false;
+        while ((pos != source_code.cend() and (std::isdigit(*pos) or *pos == '.'))) {
+            if (*pos == '.' and decimalCheck) {
+                trivialError("Tokenizer", "multiple decimal points", 
+                             lineCount,charCount);
+            } else if (*pos == '.') {
+                decimalCheck = true;
+            }
+            currentToken.value += *pos;
+            ++pos;
+            ++charCount;
+        }
+        currentToken.tag = "number";
+        currentToken.charCount = charCount;
     }
     
     int charCount = 1, lineCount = 1;
     std::vector<token> tokens;
     token currentToken;
+    bool emergencySkip = false;
 
 public:
     // Main tokenizer function
@@ -105,19 +198,30 @@ public:
         std::string::iterator pos = source_code.begin();
 
         while (pos != source_code.cend()) {
+            emergencySkip = false;
             switch (*pos) {
-                // space, tab, return caridge for windows
-                case ' ': case '\t': case '\r':
+                // space, return caridge for windows
+                case ' ': case '\r':
                     ++charCount;
                     ++pos;
                     continue;
                     break;
-                // new line             
+                // tab
+                case '\t':
+                    charCount += 4 - ((charCount - 1) % 4);
+                    ++pos;
+                    continue;
+                    break;
+                // new line
                 case '\n':
                     charCount = 1;
                     ++lineCount;
                     ++pos;
                     continue;
+                    break;
+                // illegal characters
+                case '$': case '@':
+                    trivialError(section, std::string("Syntax error illegal character: ") + *pos, lineCount, charCount);
                     break;
                 // strings
                 case '"':
@@ -126,25 +230,23 @@ public:
                 // numbers
                 case '0': case '1': case '2': case '3': case '4': 
                 case '5': case '6': case '7': case '8': case '9': {
-                    currentToken.tokenStart = charCount;
-                    bool decimalCheck = false;
-                    while (std::isdigit(*pos) or *pos == '.') {
-                        if (*pos == '.' and decimalCheck) {
-                            trivialError("Tokenizer", "multiple decimal points", 
-                                         lineCount,charCount);
-                        } else if (*pos == '.') {
-                            decimalCheck = true;
-                        }
-                        currentToken.value += *pos;
-                        ++pos;
-                        ++charCount;
-                    }
-                    currentToken.tag = "number";
-                    currentToken.charCount = charCount;
+                    numTokenize(source_code, pos);
                     break;
                 }
+                // decimal or '.'?
+                case '.':
+                    currentToken.tokenStart = charCount;
+                    currentToken.tag += *pos;
+                    if ((pos + 1) != source_code.cend() and std::isdigit(*(pos + 1))) {
+                        currentToken.value = "0";
+                        numTokenize(source_code, pos);
+                        break;
+                    }
+                    ++pos;
+                    currentToken.charCount = ++charCount;
+                    break;
                 // Single character tokens
-                case '+': case '-': case '*': case '/': case '%': case '(': case ')':
+                case '+': case '-': case '*': case '%': case '(': case ')':
                 case '{': case '}': case '[': case ']': case ',': case ':': case ';':
                     currentToken.tokenStart = charCount;
                     currentToken.tag += *pos;
@@ -152,11 +254,9 @@ public:
                     currentToken.charCount = ++charCount;
                     break;
                 // Multi character tokens
-                case '!': case '=': case '|': case '&': case '<': case '>':
-                    currentToken.tokenStart = charCount;
-                    currentToken.tag += *pos;
-                    ++pos;
-                    currentToken.charCount = ++charCount;
+                case '!': case '=': case '|': case '&': case '<': case '>': case '/':
+                    multCharTokenize(source_code, pos);            
+                    if (emergencySkip) {currentToken.tag.clear(); continue;}
                     break;            
                 default:
                     #ifdef DEBUG
@@ -164,18 +264,15 @@ public:
                     #endif
                     keywordTokenize(source_code, pos);
             }
+            currentToken.lineCount = lineCount;
             tokens.push_back(currentToken);
             currentToken = token{};
             #ifdef DEBUG
                 std::cerr << "[Debug][Tokenizer] end char: " << *pos
-                          << " line: "  << lineCount 
-                          << std::endl;
+                          << " line: "  << lineCount << " pos: " 
+                          << charCount << std::endl;
             #endif
         }
-        currentToken.tag = "None";
-        currentToken.lineCount = lineCount;
-        currentToken.tokenStart = charCount;
-        tokens.push_back(currentToken);
         
         // Take tokens and throw them into a string
         std::string tokenList = "[";
@@ -184,7 +281,13 @@ public:
                 tokenList += tokens[i].generate() :
                 tokenList += tokens[i].generate() + ", ";
         }
-        tokenList += "]";
+        if (tokens.size() > 0) tokenList += ", ";
+
+        // Add end token
+        currentToken.tag = "None";
+        tokenList += "{'tag': " + currentToken.tag + ", 'line': " 
+                + std::to_string(lineCount) + ", 'column': " 
+                + std::to_string(charCount) + "}]";
 
         return tokenList;
     }
